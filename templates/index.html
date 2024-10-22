@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Погода по маршруту</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h1>Введите начальную и конечную точку маршрута</h1>
+    <form action="/weather" method="post" onsubmit="return validateForm()">
+        <label for="start">Начальная точка:</label>
+        <input type="text" id="start" name="start" required pattern="[A-Za-zА-Яа-яЁё\s-]+" title="Пожалуйста, введите только название города (буквы, пробелы и тире).">
+
+        <label for="end">Конечная точка:</label>
+        <input type="text" id="end" name="end" required pattern="[A-Za-zА-Яа-яЁё\s-]+" title="Пожалуйста, введите только название города (буквы, пробелы и тире).">
+
+        <button type="submit">Получить погоду</button>
+    </form>
+
+    <script>
+        function validateForm() {
+            const start = document.getElementById('start').value;
+            const end = document.getElementById('end').value;
+            const regex = /^[A-Za-zА-Яа-яЁё\s-]+$/; // Регулярное выражение для проверки названий городов с тире
+
+            if (!regex.test(start) || !regex.test(end)) {
+                alert("Пожалуйста, введите корректные названия городов.");
+                return false; // Отменяет отправку формы
+            }
+            return true; // Позволяет отправку формы
+        }
+    </script>
+</body>
+</html>

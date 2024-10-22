@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Результаты погоды</title>
+</head>
+<body>
+    <h1>Результаты для маршрута {{ start }} - {{ end }}</h1>
+
+    <h2>Погода в начальной точке: {{ start }}</h2>
+    <p>Температура:
+        {% if weather_start.get('Temperature') %}
+            {{ weather_start['Temperature']['Metric']['Value'] }} °C
+        {% else %}
+            Нет данных
+        {% endif %}
+    </p>
+    <p>Скорость ветра:
+        {% if weather_start.get('Wind') %}
+            {{ weather_start['Wind']['Speed']['Metric']['Value'] }} км/ч
+        {% else %}
+            Нет данных
+        {% endif %}
+    </p>
+    <p>Вероятность осадков:
+        {% if 'PrecipitationProbability' in weather_start %}
+            {{ weather_start['PrecipitationProbability'] }}%
+        {% else %}
+            Нет данных
+        {% endif %}
+    </p>
+    <p>Влажность:
+        {% if 'RelativeHumidity' in weather_start %}
+            {{ weather_start['RelativeHumidity'] }}%
+        {% else %}
+            Нет данных
+        {% endif %}
+    </p>
+    <p>Атмосферное давление:
+        {% if weather_start.get('Pressure') %}
+            {{ weather_start['Pressure']['Metric']['Value'] }} гПа
+        {% else %}
+            Нет данных
+        {% endif %}
+    </p>
+    <p>Оценка погоды: {{ result_start }}</p>
+
+    <h2>Погода в конечной точке: {{ end }}</h2>
+    <p>Температура:
+        {% if weather_end.get('Temperature') %}
+            {{ weather_end['Temperature']['Metric']['Value'] }} °C
+        {% else %}
+            Нет данных
+        {% endif %}
+    </p>
+    <p>Скорость ветра:
+        {% if weather_end.get('Wind') %}
+            {{ weather_end['Wind']['Speed']['Metric']['Value'] }} км/ч
+        {% else %}
+            Нет данных
+        {% endif %}
+    </p>
+    <p>Вероятность осадков:
+        {% if 'PrecipitationProbability' in weather_end %}
+            {{ weather_end['PrecipitationProbability'] }}%
+        {% else %}
+            Нет данных
+        {% endif %}
+    </p>
+    <p>Влажность:
+        {% if 'RelativeHumidity' in weather_end %}
+            {{ weather_end['RelativeHumidity'] }}%
+        {% else %}
+            Нет данных
+        {% endif %}
+    </p>
+    <p>Атмосферное давление:
+        {% if weather_end.get('Pressure') %}
+            {{ weather_end['Pressure']['Metric']['Value'] }} гПа
+        {% else %}
+            Нет данных
+        {% endif %}
+    </p>
+    <p>Оценка погоды: {{ result_end }}</p>
+
+    <a href="/">Назад</a>
+</body>
+</html>
