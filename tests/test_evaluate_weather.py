@@ -1,5 +1,5 @@
 import unittest
-from app import evaluate_weather
+from app import evaluate_weather  # Импортируйте вашу функцию
 
 
 class EvaluateWeatherTests(unittest.TestCase):
@@ -24,7 +24,7 @@ class EvaluateWeatherTests(unittest.TestCase):
         weather_data = {
             'Temperature': {'Metric': {'Value': 40}},  # Высокая температура
             'Wind': {'Speed': {'Metric': {'Value': 10}}},
-            'PrecipitationProbability': 0,
+            'PrecipitationSummary': {'Precipitation': {'Metric': {'Value': 0.2}}},  # Дождь
             'RelativeHumidity': 50,
             'Pressure': {'Metric': {'Value': 1015}},
         }
@@ -36,7 +36,7 @@ class EvaluateWeatherTests(unittest.TestCase):
         weather_data = {
             'Temperature': {'Metric': {'Value': 20}},
             'Wind': {'Speed': {'Metric': {'Value': 5}}},
-            'PrecipitationProbability': 10,
+            'PrecipitationSummary': {'Precipitation': {'Metric': {'Value': 0.0}}},  # Без дождя
             'RelativeHumidity': 40,
             'Pressure': {'Metric': {'Value': 1015}},
         }

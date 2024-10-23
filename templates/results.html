@@ -23,9 +23,9 @@
             Нет данных
         {% endif %}
     </p>
-    <p>Вероятность осадков:
-        {% if 'PrecipitationProbability' in weather_start %}
-            {{ weather_start['PrecipitationProbability'] }}%
+    <p>Осадки:
+        {% if 'PrecipitationSummary' in weather_start %}
+            {{ weather_start['PrecipitationSummary']['Precipitation']['Metric']['Value'] }} мм
         {% else %}
             Нет данных
         {% endif %}
@@ -61,9 +61,9 @@
             Нет данных
         {% endif %}
     </p>
-    <p>Вероятность осадков:
-        {% if 'PrecipitationProbability' in weather_end %}
-            {{ weather_end['PrecipitationProbability'] }}%
+    <p>Осадки:
+        {% if 'PrecipitationSummary' in weather_end %}
+            {{ weather_end['PrecipitationSummary']['Precipitation']['Metric']['Value'] }} мм
         {% else %}
             Нет данных
         {% endif %}
