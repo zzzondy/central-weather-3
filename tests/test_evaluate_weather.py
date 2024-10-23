@@ -1,5 +1,5 @@
 import unittest
-from app import evaluate_weather  # Импортируйте вашу функцию
+from app import evaluate_weather
 
 
 class EvaluateWeatherTests(unittest.TestCase):
