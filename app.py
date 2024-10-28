@@ -17,17 +17,17 @@ def weather():
     start_city = request.form['start']
     end_city = request.form['end']
 
-    start_location_key = get_location_key(start_city)
-    end_location_key = get_location_key(end_city)
+    start_coordinates = get_coordinates(start_city)
+    end_coordinates = get_coordinates(end_city)
 
-    if start_location_key.message is not None:
-        return render_template(templates_paths.ERROR, message=start_location_key.message)
+    if start_coordinates.data is None:
+        return render_template(templates_paths.ERROR, message=start_coordinates.message)
 
-    if end_location_key.message is not None:
-        return render_template(templates_paths.ERROR, message=end_location_key.message)
+    if end_coordinates.data is None:
+        return render_template(templates_paths.ERROR, message=end_coordinates.message)
 
-    weather_start = get_weather(start_location_key.data)
-    weather_end = get_weather(end_location_key.data)
+    weather_start = get_weather(start_coordinates.data)
+    weather_end = get_weather(end_coordinates.data)
 
     if weather_start.data is None:
         return render_template(templates_paths.ERROR, message=weather_start.message)
@@ -49,45 +49,53 @@ def weather():
     )
 
 
-def get_location_key(city) -> Result:
+def get_coordinates(city) -> Result:
     try:
-        response = requests.get(constants.LOCATION_URL, params={'apikey': constants.API_KEY, 'q': city})
+        response = requests.get(constants.GEOCODING_URL,
+                                params={'q': city, 'appid': constants.API_KEY})
         response.raise_for_status()
         data = response.json()
-        if data:
-            return Result(data[0]["Key"], None)
+
+        if response.status_code == 200 and data:
+            coordinates = (data[0]['lat'], data[0]['lon'])
+            return Result(coordinates, None)
         else:
             return Result(None, f"Упс. Город {city} не найден")
+
     except requests.exceptions.HTTPError:
-        return Result(None, f"Произошла ошибка, попробуйте позже")
-    except:
-        return Result(None, f"Произошла непредвиденная ошибка")
-
-
-def get_weather(location_key) -> Result:
-    try:
-        response = requests.get(constants.CURRENT_CONDITIONS_URL + location_key,
-                                params={'apikey': constants.API_KEY, 'language': "ru-ru", 'details': True})
-        response.raise_for_status()
-        return Result(response.json()[0], None)
-    except requests.exceptions.HTTPError as http_err:
         return Result(None, "Ошибка подключения к серверу. Пожалуйста, попробуйте позже.")
     except requests.exceptions.RequestException as e:
         return Result(None, "Ошибка подключения к серверу. Проверьте ваше интернет-соединение.")
-    except:
-        return Result(None, "Не удалось получить данные о погоде.")
+    except Exception as ex:
+        return Result(None, f"Не удалось получить координаты: {ex}")
+
+
+def get_weather(coordinates) -> Result:
+    lat, lon = coordinates
+    try:
+        response = requests.get(constants.OPEN_WEATHER_URL,
+                                params={'lat': lat, 'lon': lon, 'appid': constants.API_KEY, 'units': 'metric',
+                                        'lang': 'ru'})
+        response.raise_for_status()
+        return Result(response.json(), None)
+
+    except requests.exceptions.HTTPError:
+        return Result(None, "Ошибка подключения к серверу. Пожалуйста, попробуйте позже.")
+    except requests.exceptions.RequestException as e:
+        return Result(None, "Ошибка подключения к серверу. Проверьте ваше интернет-соединение.")
+    except Exception as ex:
+        return Result(None, f"Не удалось получить данные о погоде: {ex}")
 
 
 def evaluate_weather(weather_data):
     if not weather_data:
         return "Нет данных о погоде"
 
-    temperature = weather_data.get('Temperature', {}).get('Metric', {}).get('Value', None)
-    wind_speed = weather_data.get('Wind', {}).get('Speed', {}).get('Metric', {}).get('Value', None)
-    precipitation = weather_data.get('PrecipitationSummary', {}).get('Precipitation', {}).get('Metric', {}).get('Value',
-                                                                                                                None)
-    humidity = weather_data.get('RelativeHumidity', None)
-    pressure = weather_data.get('Pressure', {}).get('Metric', {}).get('Value', None)
+    temperature = weather_data.get('main', {}).get('temp', None)
+    wind_speed = weather_data.get('wind', {}).get('speed', None)
+    precipitation = weather_data.get('rain', {}).get('1h', 0)  # Объём дождя за последний час
+    humidity = weather_data.get('main', {}).get('humidity', None)
+    pressure = weather_data.get('main', {}).get('pressure', None)
 
     if (temperature is None or wind_speed is None or
             precipitation is None or humidity is None or pressure is None):

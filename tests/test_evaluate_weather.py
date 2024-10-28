@@ -12,8 +12,13 @@ class EvaluateWeatherTests(unittest.TestCase):
     def test_missing_parameters(self):
         """Тест для отсутствующих необходимых параметров"""
         weather_data = {
-            'Temperature': {'Metric': {'Value': 25}},
-            'Wind': {'Speed': {'Metric': {'Value': 10}}},
+            'main': {
+                'temp': 25,
+                'humidity': 50
+            },
+            'wind': {
+                'speed': 10
+            }
             # Отсутствуют другие параметры
         }
         result = evaluate_weather(weather_data)
@@ -22,11 +27,17 @@ class EvaluateWeatherTests(unittest.TestCase):
     def test_bad_weather_conditions(self):
         """Тест для неблагоприятных погодных условий"""
         weather_data = {
-            'Temperature': {'Metric': {'Value': 40}},  # Высокая температура
-            'Wind': {'Speed': {'Metric': {'Value': 10}}},
-            'PrecipitationSummary': {'Precipitation': {'Metric': {'Value': 0.2}}},  # Дождь
-            'RelativeHumidity': 50,
-            'Pressure': {'Metric': {'Value': 1015}},
+            'main': {
+                'temp': 40,  # Высокая температура
+                'humidity': 50,
+                'pressure': 1015
+            },
+            'wind': {
+                'speed': 10
+            },
+            'rain': {
+                '1h': 0.2  # Дождь
+            }
         }
         result = evaluate_weather(weather_data)
         self.assertEqual(result, "Ой-ой, погода плохая")
@@ -34,11 +45,17 @@ class EvaluateWeatherTests(unittest.TestCase):
     def test_good_weather_conditions(self):
         """Тест для хороших погодных условий"""
         weather_data = {
-            'Temperature': {'Metric': {'Value': 20}},
-            'Wind': {'Speed': {'Metric': {'Value': 5}}},
-            'PrecipitationSummary': {'Precipitation': {'Metric': {'Value': 0.0}}},  # Без дождя
-            'RelativeHumidity': 40,
-            'Pressure': {'Metric': {'Value': 1015}},
+            'main': {
+                'temp': 20,
+                'humidity': 40,
+                'pressure': 1015
+            },
+            'wind': {
+                'speed': 5
+            },
+            'rain': {
+                '1h': 0.0  # Без дождя
+            }
         }
         result = evaluate_weather(weather_data)
         self.assertEqual(result, "Погода супер")

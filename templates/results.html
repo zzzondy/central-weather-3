@@ -10,36 +10,36 @@
 
     <h2>Погода в начальной точке: {{ start }}</h2>
     <p>Температура:
-        {% if weather_start.get('Temperature') %}
-            {{ weather_start['Temperature']['Metric']['Value'] }} °C
+        {% if weather_start.get('main') %}
+            {{ weather_start['main']['temp'] }} °C
         {% else %}
             Нет данных
         {% endif %}
     </p>
     <p>Скорость ветра:
-        {% if weather_start.get('Wind') %}
-            {{ weather_start['Wind']['Speed']['Metric']['Value'] }} км/ч
+        {% if weather_start.get('wind') %}
+            {{ weather_start['wind']['speed'] }} км/ч
         {% else %}
             Нет данных
         {% endif %}
     </p>
     <p>Осадки:
-        {% if 'PrecipitationSummary' in weather_start %}
-            {{ weather_start['PrecipitationSummary']['Precipitation']['Metric']['Value'] }} мм
+        {% if weather_start.get('rain') %}
+            {{ weather_start['rain'].get('1h', 0) }} мм
         {% else %}
             Нет данных
         {% endif %}
     </p>
     <p>Влажность:
-        {% if 'RelativeHumidity' in weather_start %}
-            {{ weather_start['RelativeHumidity'] }}%
+        {% if weather_start.get('main') %}
+            {{ weather_start['main']['humidity'] }}%
         {% else %}
             Нет данных
         {% endif %}
     </p>
     <p>Атмосферное давление:
-        {% if weather_start.get('Pressure') %}
-            {{ weather_start['Pressure']['Metric']['Value'] }} гПа
+        {% if weather_start.get('main') %}
+            {{ weather_start['main']['pressure'] }} гПа
         {% else %}
             Нет данных
         {% endif %}
@@ -48,36 +48,36 @@
 
     <h2>Погода в конечной точке: {{ end }}</h2>
     <p>Температура:
-        {% if weather_end.get('Temperature') %}
-            {{ weather_end['Temperature']['Metric']['Value'] }} °C
+        {% if weather_end.get('main') %}
+            {{ weather_end['main']['temp'] }} °C
         {% else %}
             Нет данных
         {% endif %}
     </p>
     <p>Скорость ветра:
-        {% if weather_end.get('Wind') %}
-            {{ weather_end['Wind']['Speed']['Metric']['Value'] }} км/ч
+        {% if weather_end.get('wind') %}
+            {{ weather_end['wind']['speed'] }} км/ч
         {% else %}
             Нет данных
         {% endif %}
     </p>
     <p>Осадки:
-        {% if 'PrecipitationSummary' in weather_end %}
-            {{ weather_end['PrecipitationSummary']['Precipitation']['Metric']['Value'] }} мм
+        {% if weather_end.get('rain') %}
+            {{ weather_end['rain'].get('1h', 0) }} мм
         {% else %}
             Нет данных
         {% endif %}
     </p>
     <p>Влажность:
-        {% if 'RelativeHumidity' in weather_end %}
-            {{ weather_end['RelativeHumidity'] }}%
+        {% if weather_end.get('main') %}
+            {{ weather_end['main']['humidity'] }}%
         {% else %}
             Нет данных
         {% endif %}
     </p>
     <p>Атмосферное давление:
-        {% if weather_end.get('Pressure') %}
-            {{ weather_end['Pressure']['Metric']['Value'] }} гПа
+        {% if weather_end.get('main') %}
+            {{ weather_end['main']['pressure'] }} гПа
         {% else %}
             Нет данных
         {% endif %}

@@ -1,4 +1,4 @@
-API_KEY = "AwlApNROjrtFBM9QqU3TXXoAIm7E9d2j"
+API_KEY = "68c4ca0a645546bec6731515ecf4677a"
 CENTRAL_UNIVERSITY_WEATHER = "Central University weather"
-LOCATION_URL = 'http://dataservice.accuweather.com/locations/v1/cities/search'
-CURRENT_CONDITIONS_URL = 'http://dataservice.accuweather.com/currentconditions/v1/'
+OPEN_WEATHER_URL = "http://ru.api.openweathermap.org/data/2.5/weather"
+GEOCODING_URL = "http://api.openweathermap.org/geo/1.0/direct"
