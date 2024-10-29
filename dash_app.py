@@ -8,7 +8,6 @@ import dash_leaflet as dl
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
-# Mock API URL для OpenWeatherMap
 GEOCODING_URL = "http://127.0.0.1:5001/geo/1.0/direct"
 ONE_CALL_URL = "http://127.0.0.1:5001/data/2.5/onecall"
 
@@ -41,6 +40,16 @@ app.layout = dbc.Container([
         dbc.Col(html.Button('Получить погоду', id='submit-button', n_clicks=0, className='btn btn-primary btn-block'),
                 width=6)
     ]),
+    dbc.Row([
+        html.H6('День на карте', style={'margin-top': '20px'}),
+        dbc.Col(dcc.Dropdown(
+            id='day-selection',
+            options=[{'label': 'День 1', 'value': 1}],
+            value=0,
+            clearable=False,
+            className='form-control'
+        ), width=6, style={'margin-top': '20px', }),
+    ]),
     html.H2(id='travel-text', style={'margin-top': '20px', 'text-align': 'center'}),
     html.Div(id='graphs-container'),
     dl.Map(id='weather-map', style={'height': '50vh'}, center=[55.7558, 37.6173], zoom=6, children=[
@@ -49,7 +58,6 @@ app.layout = dbc.Container([
     html.Div(id='output-container')
 ], fluid=True)
 
-# Глобальная переменная для хранения списка городов
 cities = []
 
 
@@ -69,14 +77,24 @@ def update_city_list(n_clicks_add, city_name):
 
 
 @app.callback(
+    Output('day-selection', 'options'),
+    Input('forecast-days', 'value')
+)
+def update_day_selection(forecast_days):
+    num_days = int(forecast_days)
+    return [{'label': f'День {i + 1}', 'value': i} for i in range(num_days)]
+
+
+@app.callback(
     Output('graphs-container', 'children'),
     Output('output-container', 'children'),
     Output('travel-text', 'children'),
     Output('weather-map', 'children'),
     Input('submit-button', 'n_clicks'),
     Input('forecast-days', 'value'),
+    Input('day-selection', 'value'),
 )
-def update_graph(n_clicks, forecast_days):
+def update_graph(n_clicks, forecast_days, selected_day):
     forecast_days = int(forecast_days)
 
     if n_clicks > 0:
@@ -152,10 +170,17 @@ def update_graph(n_clicks, forecast_days):
                     )
                 )
 
-                # Добавление маркера на карту
-                markers.append(dl.Marker(position=(lat, lon), children=[
-                    dl.Tooltip(f'{city}: Температура: {temp_day}°C\nВлажность: {humidity_day}%')
-                ]))
+                # Добавление маркера на карту с информацией о выбранном дне
+                if selected_day < forecast_days:
+                    markers.append(dl.Marker(position=(lat, lon), children=[
+                        dl.Tooltip(f'{city}: Температура: {temp_data[selected_day]}°C\n'
+                                   f'Скорость ветра: {wind_speed_data[selected_day]} км/ч\n'
+                                   f'Влажность: {humidity_data[selected_day]}%\n'
+                                   f'Осадки: {rain_data[selected_day]} мм\n'
+                                   f'День: {selected_day + 1}')
+                    ]))
+                else:
+                    messages.append(f"Выбранный день за пределами доступных данных для города {city}.")
             else:
                 messages.append(f"Город {city} не найден.")
 
