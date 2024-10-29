@@ -4,15 +4,14 @@ from dash.dependencies import Input, Output, State
 import plotly.graph_objs as go
 import requests
 import dash_bootstrap_components as dbc
+import dash_leaflet as dl
 
-# Создание экземпляра приложения Dash с использованием Bootstrap
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 # Mock API URL для OpenWeatherMap
 GEOCODING_URL = "http://127.0.0.1:5001/geo/1.0/direct"
 ONE_CALL_URL = "http://127.0.0.1:5001/data/2.5/onecall"
 
-# Макет приложения с использованием компонентов Bootstrap
 app.layout = dbc.Container([
     dbc.Row([
         dbc.Col(html.H1("Визуализация погодных данных"), className="text-center mb-4")
@@ -30,11 +29,12 @@ app.layout = dbc.Container([
         dbc.Col(dcc.Dropdown(
             id='forecast-days',
             options=[
+                {'label': 'Прогноз на 1 день', 'value': '1'},
                 {'label': 'Прогноз на 3 дня', 'value': '3'},
                 {'label': 'Прогноз на 5 дней', 'value': '5'},
                 {'label': 'Прогноз на 7 дней', 'value': '7'},
             ],
-            value='3',
+            value='1',
             clearable=False,
             className='form-control'
         ), width=6),
@@ -42,7 +42,10 @@ app.layout = dbc.Container([
                 width=6)
     ]),
     html.H2(id='travel-text', style={'margin-top': '20px', 'text-align': 'center'}),
-    html.Div(id='graphs-container'),  # Контейнер для графиков
+    html.Div(id='graphs-container'),
+    dl.Map(id='weather-map', style={'height': '50vh'}, center=[55.7558, 37.6173], zoom=6, children=[
+        dl.TileLayer()
+    ]),
     html.Div(id='output-container')
 ], fluid=True)
 
@@ -58,7 +61,6 @@ cities = []
 def update_city_list(n_clicks_add, city_name):
     global cities
     if n_clicks_add > 0 and city_name:
-        # Добавляем город только если кнопка нажата и имя города не пустое
         if city_name not in cities:
             cities.append(city_name)
         return [html.Div(city, className='alert alert-info') for city in cities]
@@ -70,18 +72,20 @@ def update_city_list(n_clicks_add, city_name):
     Output('graphs-container', 'children'),
     Output('output-container', 'children'),
     Output('travel-text', 'children'),
+    Output('weather-map', 'children'),
     Input('submit-button', 'n_clicks'),
     Input('forecast-days', 'value'),
-    Input('add-city-button', 'n_clicks'),
 )
-def update_graph(n_clicks, forecast_days, n_clicks_add):
+def update_graph(n_clicks, forecast_days):
     forecast_days = int(forecast_days)
+
     if n_clicks > 0:
         graphs = []
         messages = []
+        markers = []
 
         if not cities:
-            return [], "Введите хотя бы один город.", ""
+            return [], "Введите хотя бы один город.", "", []
 
         for city in cities:
             # Получение координат города
@@ -120,13 +124,23 @@ def update_graph(n_clicks, forecast_days, n_clicks_add):
                         figure={
                             'data': [
                                 go.Scatter(x=[f'Day {i + 1}' for i in range(forecast_days)], y=temp_data,
-                                           mode='lines+markers', name=f'Температура ({city}) (°C)'),
+                                           mode='lines+markers', name=f'Температура ({city}) (°C)',
+                                           hoverinfo='text',
+                                           text=[f'День {i + 1}: {temp}°C' for i, temp in enumerate(temp_data)]),
                                 go.Scatter(x=[f'Day {i + 1}' for i in range(forecast_days)], y=wind_speed_data,
-                                           mode='lines+markers', name=f'Скорость ветра ({city}) (км/ч)'),
+                                           mode='lines+markers', name=f'Скорость ветра ({city}) (км/ч)',
+                                           hoverinfo='text',
+                                           text=[f'День {i + 1}: {wind} км/ч' for i, wind in
+                                                 enumerate(wind_speed_data)]),
                                 go.Scatter(x=[f'Day {i + 1}' for i in range(forecast_days)], y=humidity_data,
-                                           mode='lines+markers', name=f'Влажность ({city}) (%)'),
+                                           mode='lines+markers', name=f'Влажность ({city}) (%)',
+                                           hoverinfo='text',
+                                           text=[f'День {i + 1}: {humidity}%' for i, humidity in
+                                                 enumerate(humidity_data)]),
                                 go.Scatter(x=[f'Day {i + 1}' for i in range(forecast_days)], y=rain_data,
-                                           mode='lines+markers', name=f'Осадки ({city}) (мм)')
+                                           mode='lines+markers', name=f'Осадки ({city}) (мм)',
+                                           hoverinfo='text',
+                                           text=[f'День {i + 1}: {rain} мм' for i, rain in enumerate(rain_data)])
                             ],
                             'layout': go.Layout(
                                 title=f'Погода в {city}',
@@ -137,14 +151,19 @@ def update_graph(n_clicks, forecast_days, n_clicks_add):
                         }
                     )
                 )
+
+                # Добавление маркера на карту
+                markers.append(dl.Marker(position=(lat, lon), children=[
+                    dl.Tooltip(f'{city}: Температура: {temp_day}°C\nВлажность: {humidity_day}%')
+                ]))
             else:
                 messages.append(f"Город {city} не найден.")
 
         travel_text_content = f"Путешествие через: {', '.join(cities)}" if cities else ""
 
-        return graphs, "<br>".join(messages), travel_text_content
+        return graphs, "<br>".join(messages), travel_text_content, [dl.TileLayer()] + markers
 
-    return [], "", ""
+    return [], "", "", []
 
 
 if __name__ == '__main__':
