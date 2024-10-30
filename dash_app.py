@@ -5,11 +5,9 @@ import plotly.graph_objs as go
 import requests
 import dash_bootstrap_components as dbc
 import dash_leaflet as dl
+import constants
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
-
-GEOCODING_URL = "http://127.0.0.1:5001/geo/1.0/direct"
-ONE_CALL_URL = "http://127.0.0.1:5001/data/2.5/onecall"
 
 app.layout = dbc.Container([
     dbc.Row([
@@ -107,7 +105,7 @@ def update_graph(n_clicks, forecast_days, selected_day):
 
         for city in cities:
             # Получение координат города
-            response = requests.get(GEOCODING_URL, params={'q': city})
+            response = requests.get(constants.GEOCODING_MOCK_URL, params={'q': city})
             location_data = response.json()
 
             if location_data:
@@ -115,7 +113,7 @@ def update_graph(n_clicks, forecast_days, selected_day):
                 lon = location_data[0]['lon']
 
                 # Получение данных о погоде для города
-                weather_response = requests.get(ONE_CALL_URL,
+                weather_response = requests.get(constants.OPEN_WEATHER_MOCK_URL,
                                                 params={'lat': lat, 'lon': lon})
                 weather_data = weather_response.json()
 
