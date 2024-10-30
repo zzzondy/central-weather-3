@@ -12,28 +12,73 @@ user_data = {}
 
 @dp.message(F.text == "/start")
 async def start_handler(message: types.Message):
+    keyboard_builder = InlineKeyboardBuilder()
+    keyboard_builder.button(text="/help", callback_data="help")
+    keyboard_builder.button(text="/weather", callback_data="weather")
+    keyboard = keyboard_builder.as_markup()
+
     await message.answer(
         "Привет! Я бот для получения прогноза погоды.\n"
-        "Вы можете использовать следующие команды:\n"
-        "/help - получить справку по командам\n"
-        "/weather - узнать погоду на маршруте между двумя городами."
+        "Вы можете использовать следующие команды:", reply_markup=keyboard
+    )
+
+
+@dp.callback_query(lambda call: call.data == "start")
+async def start_callback(call: types.CallbackQuery):
+    keyboard_builder = InlineKeyboardBuilder()
+    keyboard_builder.button(text="/help", callback_data="help")
+    keyboard_builder.button(text="/weather", callback_data="weather")
+    keyboard = keyboard_builder.as_markup()
+
+    await call.message.answer(
+        "Привет! Я бот для получения прогноза погоды.\n"
+        "Вы можете использовать следующие команды:", reply_markup=keyboard
     )
 
 
 @dp.message(F.text == "/help")
-async def help_handler(message: types.Message):
+async def help_message(message: types.Message):
+    keyboard_builder = InlineKeyboardBuilder()
+    keyboard_builder.button(text="/start", callback_data="start")
+    keyboard_builder.button(text="/weather", callback_data="weather")
+    keyboard = keyboard_builder.as_markup()
+
     await message.answer(
         "Доступные команды:\n"
         "/start - начать взаимодействие с ботом\n"
         "/help - получить справку по командам\n"
-        "/weather - запросить прогноз погоды на маршруте между двумя городами.\n"
-        "Следуйте инструкциям, чтобы получить нужную информацию."
+        "/weather - запросить прогноз погоды на маршруте между несколькими городами.",
+        reply_markup=keyboard
     )
+
+
+@dp.callback_query(lambda call: call.data == "help")
+async def help_callback(call: types.CallbackQuery):
+    keyboard_builder = InlineKeyboardBuilder()
+    keyboard_builder.button(text="/start", callback_data="start")
+    keyboard_builder.button(text="/weather", callback_data="weather")
+    keyboard = keyboard_builder.as_markup()
+
+    await call.message.answer(
+        "Доступные команды:\n"
+        "/start - начать взаимодействие с ботом\n"
+        "/help - получить справку по командам\n"
+        "/weather - запросить прогноз погоды на маршруте между несколькими городами.",
+        reply_markup=keyboard
+    )
+    await call.answer()  # Убираем уведомление о нажатии кнопки
+
+
+@dp.callback_query(lambda call: call.data == "weather")
+async def weather_callback(call: types.CallbackQuery):
+    await call.message.answer("Введите город отправления:")
+    user_data[call.from_user.id] = {"cities": [], "step": "city_input"}
+    await call.answer()  # Убираем уведомление о нажатии кнопки
 
 
 @dp.message(F.text == "/weather")
 async def weather_handler(message: types.Message):
-    user_data[message.from_user.id] = {"step": "city1"}
+    user_data[message.from_user.id] = {"cities": [], "step": "city_input"}
     await message.answer("Введите город отправления:")
 
 
@@ -42,83 +87,86 @@ async def handle_city_input(message: types.Message):
     user_id = message.from_user.id
     user_step = user_data[user_id]["step"]
 
-    if user_step == "city1":
-        user_data[user_id]["city1"] = message.text
-        user_data[user_id]["step"] = "city2"
-        await message.answer("Введите город назначения:")
+    if user_step == "city_input":
+        city = message.text.strip()
 
-    elif user_step == "city2":
-        user_data[user_id]["city2"] = message.text
-        user_data[user_id]["step"] = "choice"
+        # Проверка на наличие города
+        async with aiohttp.ClientSession() as session:
+            async with session.get(constants.GEOCODING_MOCK_URL + f'?q={city}') as response:
+                geo_info = await response.json()
+                if not geo_info:
+                    await message.answer(f"Не удалось найти город '{city}'. Пожалуйста, введите другой город:")
+                    return
 
+        # Добавление города в список
+        user_data[user_id]["cities"].append(city)
+        await message.answer(f"Город '{city}' добавлен.")
+
+        # Создание клавиатуры с кнопкой "Готово"
         keyboard_builder = InlineKeyboardBuilder()
-        keyboard_builder.button(text="Прогноз на 1 день", callback_data="1")
-        keyboard_builder.button(text="Прогноз на 3 дня", callback_data="3")
-        keyboard_builder.button(text="Прогноз на 5 дней", callback_data="5")
-        keyboard_builder.button(text="Прогноз на 7 дней", callback_data="7")
+        keyboard_builder.button(text="Готово", callback_data="done")
         keyboard = keyboard_builder.as_markup()
 
-        await message.answer("Выберите временной интервал прогноза:", reply_markup=keyboard)
+        await message.answer("Введите следующий город (или нажмите 'Готово', чтобы завершить):", reply_markup=keyboard)
+
+
+@dp.callback_query(lambda call: call.data == "done")
+async def finish_city_input(call: types.CallbackQuery):
+    user_id = call.from_user.id
+
+    if not user_data[user_id]["cities"]:
+        await call.message.answer("Вы не ввели ни одного города. Пожалуйста, введите хотя бы один город.")
+        return
+
+    user_data[user_id]["step"] = "choice"
+    keyboard_builder = InlineKeyboardBuilder()
+    keyboard_builder.button(text="Прогноз на 1 день", callback_data="1")
+    keyboard_builder.button(text="Прогноз на 3 дня", callback_data="3")
+    keyboard_builder.button(text="Прогноз на 5 дней", callback_data="5")
+    keyboard_builder.button(text="Прогноз на 7 дней", callback_data="7")
+    keyboard = keyboard_builder.as_markup()
+
+    await call.message.answer("Выберите временной интервал прогноза:", reply_markup=keyboard)
+    await call.answer()
 
 
 @dp.callback_query(lambda callback_query: callback_query.data in ["1", "3", "5", "7"])
-async def handle_city_choice(call: types.CallbackQuery):
+async def handle_weather_choice(call: types.CallbackQuery):
     user_id = call.from_user.id
     duration = call.data
 
-    city1 = user_data[user_id]["city1"]
-    city2 = user_data[user_id]["city2"]
+    cities = user_data[user_id]["cities"]
 
     async with aiohttp.ClientSession() as session:
         try:
-            # Получение геоданных для первого города
-            async with session.get(constants.GEOCODING_MOCK_URL + f'?q={city1}') as response:
-                geo_info_city1 = await response.json()
-                if not geo_info_city1:
-                    await call.message.answer(f"Не удалось найти город '{city1}'.")
-                    return
+            weather_text = f"Города: {', '.join(cities)}\nПогода на {duration} дней:\n"
 
-            # Получение геоданных для второго города
-            async with session.get(constants.GEOCODING_MOCK_URL + f'?q={city2}') as response:
-                geo_info_city2 = await response.json()
-                if not geo_info_city2:
-                    await call.message.answer(f"Не удалось найти город '{city2}'.")
-                    return
+            for city in cities:
+                # Получение геоданных для города
+                async with session.get(constants.GEOCODING_MOCK_URL + f'?q={city}') as response:
+                    geo_info = await response.json()
+                    if not geo_info:
+                        await call.message.answer(f"Не удалось найти город '{city}'.")
+                        return
 
-            # Получение данных о погоде для первого города
-            lat1, lon1 = geo_info_city1[0]['lat'], geo_info_city1[0]['lon']
-            async with session.get(constants.OPEN_WEATHER_MOCK_URL + f'?lat={lat1}&lon={lon1}&days={duration}') as response:
-                weather_info_city1 = await response.json()
-                if 'daily' not in weather_info_city1:
-                    await call.message.answer(f"Не удалось получить данные о погоде для города '{city1}'.")
-                    return
+                # Получение данных о погоде для города
+                lat, lon = geo_info[0]['lat'], geo_info[0]['lon']
+                async with session.get(
+                        constants.OPEN_WEATHER_MOCK_URL + f'?lat={lat}&lon={lon}&days={duration}') as response:
+                    weather_info = await response.json()
+                    if 'daily' not in weather_info:
+                        await call.message.answer(f"Не удалось получить данные о погоде для города '{city}'.")
+                        return
 
-            # Получение данных о погоде для второго города
-            lat2, lon2 = geo_info_city2[0]['lat'], geo_info_city2[0]['lon']
-            async with session.get(constants.OPEN_WEATHER_MOCK_URL + f'?lat={lat2}&lon={lon2}&days={duration}') as response:
-                weather_info_city2 = await response.json()
-                if 'daily' not in weather_info_city2:
-                    await call.message.answer(f"Не удалось получить данные о погоде для города '{city2}'.")
-                    return
-
-            # Форматирование ответа для пользователя
-            weather_text = f"Города: {city1} и {city2}\nПогода на {duration} дней:\n"
-
-            for day_number in range(int(duration)):
-                day_weather_1 = weather_info_city1['daily'][day_number]
-                day_weather_2 = weather_info_city2['daily'][day_number]
-
-                weather_text += (f"\n--- День {day_number + 1} ---\n"
-                                 f"{city1}:\n"
-                                 f"Температура: {day_weather_1['temp']['day']}°C\n"
-                                 f"Скорость ветра: {day_weather_1['wind_speed']} м/с\n"
-                                 f"Влажность: {day_weather_1['humidity']}%\n"
-                                 f"Дождь: {day_weather_1.get('rain', 0)} мм\n\n"
-                                 f"{city2}:\n"
-                                 f"Температура: {day_weather_2['temp']['day']}°C\n"
-                                 f"Скорость ветра: {day_weather_2['wind_speed']} м/с\n"
-                                 f"Влажность: {day_weather_2['humidity']}%\n"
-                                 f"Дождь: {day_weather_2.get('rain', 0)} мм\n")
+                # Форматирование данных о погоде
+                for day_number in range(int(duration)):
+                    day_weather = weather_info['daily'][day_number]
+                    weather_text += (f"\n--- {city} ---\n"
+                                     f"День {day_number + 1}:\n"
+                                     f"Температура: {day_weather['temp']['day']}°C\n"
+                                     f"Скорость ветра: {day_weather['wind_speed']} м/с\n"
+                                     f"Влажность: {day_weather['humidity']}%\n"
+                                     f"Дождь: {day_weather.get('rain', 0)} мм\n")
 
             await call.message.answer(weather_text)
 
